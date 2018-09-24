@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System;
 using UberLogger;
-
+using System.Text.RegularExpressions;
 
 /// <summary>
 /// The in-app console logging frontend and backend
@@ -74,7 +74,7 @@ public class UberLoggerAppWindow : MonoBehaviour, UberLogger.ILogger
         {
             var oldGUIColor = GUI.color;
             GUI.color = GUIColour;
-            WindowRect = new Rect(0,0, Screen.width/2, Screen.height);
+            WindowRect = new Rect(0,Screen.height / 2, Screen.width, Screen.height/2);
             //Set up the basic style, based on the Unity defaults
             LogLineStyle1 = Skin.customStyles[0];
             LogLineStyle2 = Skin.customStyles[1];
@@ -228,7 +228,7 @@ public class UberLoggerAppWindow : MonoBehaviour, UberLogger.ILogger
     /// <summary>
     /// Based on filter and channel selections, should this log be shown?
     /// </summary>
-    bool ShouldShowLog(System.Text.RegularExpressions.Regex regex, LogInfo log)
+    bool ShouldShowLog(string regex, LogInfo log)
     {
         if(log.Channel==CurrentChannel || CurrentChannel=="All" || (CurrentChannel=="No Channel" && String.IsNullOrEmpty(log.Channel)))
         {
@@ -236,7 +236,7 @@ public class UberLoggerAppWindow : MonoBehaviour, UberLogger.ILogger
                || (log.Severity==LogSeverity.Warning && ShowWarnings)
                || (log.Severity==LogSeverity.Error && ShowErrors))
             {
-                if(regex==null || regex.IsMatch(log.Message))
+                if (string.IsNullOrEmpty(regex) || Regex.IsMatch(log.Message, regex, RegexOptions.IgnoreCase))
                 {
                     return true;
                 }
@@ -258,20 +258,13 @@ public class UberLoggerAppWindow : MonoBehaviour, UberLogger.ILogger
                 
         float buttonY = 0;
         float buttonHeight = LogLineStyle1.CalcSize(new GUIContent("Test")).y;
-        
-        System.Text.RegularExpressions.Regex filterRegex = null;
-
-        if(!String.IsNullOrEmpty(FilterRegex))
-        {
-            filterRegex = new System.Text.RegularExpressions.Regex(FilterRegex);
-        }
 
         int drawnButtons = 0;
         var logLineStyle = LogLineStyle1;
         for(int c1=0; c1<LogInfo.Count; c1++)
         {
             var log = LogInfo[c1];
-            if(ShouldShowLog(filterRegex, log))
+            if(ShouldShowLog(FilterRegex, log))
             {
                 drawnButtons++;
 
@@ -291,8 +284,8 @@ public class UberLoggerAppWindow : MonoBehaviour, UberLogger.ILogger
                     var showMessage = log.Message;
 
                     //Make all messages single line
-                    if(showMessage.Length > 100)
-                        showMessage = showMessage.Substring(0,  97) + "...";
+                    if(showMessage.Length > 250)
+                        showMessage = showMessage.Substring(0,  247) + "...";
                     showMessage = showMessage.Replace(UberLogger.Logger.UnityInternalNewLine, "\\n");
                     if(ShowTimes)
                     {

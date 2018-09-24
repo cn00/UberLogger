@@ -366,7 +366,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
                || (log.Severity==LogSeverity.Warning && ShowWarnings)
                || (log.Severity==LogSeverity.Error && ShowErrors))
             {
-                if(regex==null || Regex.IsMatch(log.Message, regex, RegexOptions.IgnoreCase))
+                if (string.IsNullOrEmpty(regex) || Regex.IsMatch(log.Message, regex, RegexOptions.IgnoreCase))
                 {
                     return true;
                 }
