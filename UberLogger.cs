@@ -250,6 +250,7 @@ namespace UberLogger
         static long StartTick;
         static bool AlreadyLogging = false;
         static Regex UnityMessageRegex;
+        static Regex LuaTraceRegex;
         static List<IFilter> Filters = new List<IFilter>();
         
         static Logger()
@@ -263,6 +264,7 @@ namespace UberLogger
 #endif
             StartTick = DateTime.Now.Ticks;
             UnityMessageRegex = new Regex(@"(.*)\((\d+).*\)");
+            LuaTraceRegex     = new Regex(".*\\[string \"(.+)\"]:(\\d+):(.*)");
         }
 
         /// <summary>
@@ -331,14 +333,14 @@ namespace UberLogger
         {
             // log = "Assets/Code/Debug.cs(140,21): warning CS0618: 'some error'
             var match = UnityMessageRegex.Matches(log);
-
+            bool has = false;
             if(match.Count>0)
             {
                 filename = match[0].Groups[1].Value;
                 lineNumber = Convert.ToInt32(match[0].Groups[2].Value);
-                return true;
+                has = true;
             }
-            return false;
+            return has;
         }
     
 
@@ -511,6 +513,43 @@ namespace UberLogger
             return stack;
         }
 
+        static List<LogStackFrame> GetCallstackFromLuaLog(string unityCallstack, out LogStackFrame originatingSourceLocation)
+        {
+            var lines = System.Text.RegularExpressions.Regex.Split(unityCallstack, UberLogger.Logger.UnityInternalNewLine);
+
+            // lua trace
+            var stack = new List<LogStackFrame>();
+            var luaRoot = "Assets/BundleRes/";
+            foreach (var line in lines)
+            {
+                /*
+                "[debug] LUA: test traceback OpenTest 
+                stack traceback:
+                    [string "ui/login/login"]:34: in field 'OpenTest'
+                    [string "ui/login/login"]:81: in function <[string "ui/login/login"]:80>
+                */
+                var match = LuaTraceRegex.Match(line);
+                if (match.Groups.Count > 1)
+                {
+                    var filename = luaRoot + match.Groups[1].Value + ".lua";
+                    var lineNumber = Convert.ToInt32(match.Groups[2].Value);
+                    var frame = new LogStackFrame(line, filename, lineNumber);
+                    stack.Add(frame);
+                }
+            }
+
+            if (stack.Count > 0)
+            {
+                originatingSourceLocation = stack[0];
+                stack.Insert(0, new LogStackFrame("lua traceback:"));
+            }
+            else
+                originatingSourceLocation = null;
+
+            return stack;
+        }
+
+
         /// <summary>
         /// The core entry point of all logging coming from Unity. Takes a log request, creates the call stack and pumps it to all the backends
         /// </summary>
@@ -560,6 +599,14 @@ namespace UberLogger
                         {
                             callstack.Insert(0, new LogStackFrame(unityMessage, filename, lineNumber));
                         }
+
+                        //lua trace
+                        var trace = GetCallstackFromLuaLog(unityMessage, out originatingSourceLocation);
+                        if (trace.Count > 0)
+                        {
+                            callstack.InsertRange(0, trace);
+                        }
+
 
                         var logInfo = new LogInfo(null, "", severity, callstack, originatingSourceLocation, unityMessage);
 
