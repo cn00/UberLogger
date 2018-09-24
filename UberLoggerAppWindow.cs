@@ -176,6 +176,7 @@ public class UberLoggerAppWindow : MonoBehaviour, UberLogger.ILogger
     {
         var toolbarStyle = GUI.skin.customStyles[3];
         GUILayout.BeginHorizontal();
+        GUILayout.Space(80f);
         if(ButtonClamped("Clear", toolbarStyle))
         {
             Clear();
@@ -290,7 +291,9 @@ public class UberLoggerAppWindow : MonoBehaviour, UberLogger.ILogger
                     var showMessage = log.Message;
 
                     //Make all messages single line
-                    showMessage = showMessage.Replace(UberLogger.Logger.UnityInternalNewLine, " ");
+                    if(showMessage.Length > 100)
+                        showMessage = showMessage.Substring(0,  97) + "...";
+                    showMessage = showMessage.Replace(UberLogger.Logger.UnityInternalNewLine, "\\n");
                     if(ShowTimes)
                     {
                         showMessage = log.GetRelativeTimeStampAsString() + ": " + showMessage; 
@@ -366,6 +369,8 @@ public class UberLoggerAppWindow : MonoBehaviour, UberLogger.ILogger
                 }
 
             }
+            //content
+            GUILayout.TextArea(log.Message);
             GUILayout.EndScrollView();
         }
         GUI.backgroundColor = oldColor;
