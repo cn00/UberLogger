@@ -133,20 +133,27 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         }
         else if (e.type == EventType.ExecuteCommand && e.commandName == copyCommandName)
         {
-            // Copy current message log and current stack to the clipboard 
+            // // Copy current message log and current stack to the clipboard 
  
-            // Convert all messages to a single long string 
-            // It would be preferable to only copy one of the two, but that requires UberLogger to have focus handling 
-            // between the message log and stack views 
-            string result = ExtractLogListToString(); 
+            // // Convert all messages to a single long string 
+            // // It would be preferable to only copy one of the two, but that requires UberLogger to have focus handling 
+            // // between the message log and stack views 
+            // string result = ExtractLogListToString(); 
  
-            result += "\n"; 
+            // result += "\n"; 
  
-            // Convert current callstack to a single long string 
-            result += ExtractLogDetailsToString(); 
+            // // Convert current callstack to a single long string 
+            // result += ExtractLogDetailsToString(); 
  
-            GUIUtility.systemCopyBuffer = result; 
-        } 
+            // GUIUtility.systemCopyBuffer = result;
+
+            // SelectedRenderLog = Mathf.Clamp(SelectedRenderLog, 0, CurrentLogList.Count);
+            if (RenderLogs.Count > 0 && SelectedRenderLog >= 0)
+            {
+                var countedLog = RenderLogs[SelectedRenderLog];
+                GUIUtility.systemCopyBuffer = countedLog.Log.Message;
+            }
+        }
     }
 
     Vector2 DrawPos;
@@ -200,7 +207,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
 
         DrawLogDetails();
 
-        HandleCopyToClipboard();
+        // HandleCopyToClipboard();
 
         //If we're dirty, do a repaint
         Dirty = false;
@@ -378,6 +385,8 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         
         //Make all messages single line
         showMessage = showMessage.Replace(UberLogger.Logger.UnityInternalNewLine, " ");
+        if (showMessage.Length > 150)
+            showMessage = showMessage.Substring(0, 147) + "...";
 
         // Format the message as follows:
         //     [channel] 0.000 : message  <-- Both channel and time shown
@@ -643,13 +652,20 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
                     }
                 }
             }
+            var content2 = new GUIContent(log.Message);
+            var sourceSize2 = sourceStyle.CalcSize(content2);
+            contentHeight += sourceSize2.y;
 
             //Render the content
             var contentRect = new Rect(0, 0, Mathf.Max(contentWidth, drawRect.width), contentHeight);
 
             LogDetailsScrollPosition = GUI.BeginScrollView(drawRect, LogDetailsScrollPosition, contentRect);
-
             float lineY = 0;
+            var sourceRect2 = new Rect(0, lineY, contentRect.width, sourceSize2.y);
+            GUI.backgroundColor = Color.white;
+            GUI.TextArea(sourceRect2, log.Message);
+            lineY += sourceSize2.y;
+
             for(int c1=0; c1<detailLines.Count; c1++)
             {
                 var lineContent = detailLines[c1];
