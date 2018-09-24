@@ -351,7 +351,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     /// <summary>
     /// Based on filter and channel selections, should this log be shown?
     /// </summary>
-    bool ShouldShowLog(System.Text.RegularExpressions.Regex regex, LogInfo log)
+    bool ShouldShowLog(string regex, LogInfo log)
     {
         if(log.Channel==CurrentChannel || CurrentChannel=="All" || (CurrentChannel=="No Channel" && String.IsNullOrEmpty(log.Channel)))
         {
@@ -359,7 +359,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
                || (log.Severity==LogSeverity.Warning && ShowWarnings)
                || (log.Severity==LogSeverity.Error && ShowErrors))
             {
-                if(regex==null || regex.IsMatch(log.Message))
+                if(regex==null || Regex.IsMatch(log.Message, regex, RegexOptions.IgnoreCase))
                 {
                     return true;
                 }
@@ -411,11 +411,11 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
 
         float buttonY = 0;
         
-        System.Text.RegularExpressions.Regex filterRegex = null;
+        string filterRegex = null;
 
         if(!String.IsNullOrEmpty(FilterRegex))
         {
-            filterRegex = new Regex(FilterRegex);
+            filterRegex = FilterRegex;
         }
 
         var collapseBadgeStyle = EditorStyles.miniButton;
